@@ -163,16 +163,16 @@ KCDev.MoveRouteTF = {};
 (($) => {
 
     const pluginName = document.currentScript.src.split("/").pop().replace(/\.js$/, "");
-    $.parameters = PluginManager.parameters(pluginName);
-    $.parameters.enableRot = $.parameters.enableRot === 'true';
-    $.parameters.enableTrans = $.parameters.enableTrans === 'true';
-    $.parameters.enableScale = $.parameters.enableScale === 'true';
+    KCDev.MoveRouteTF.parameters = PluginManager.parameters(pluginName);
+    KCDev.MoveRouteTF.parameters.enableRot = KCDev.MoveRouteTF.parameters.enableRot === 'true';
+    KCDev.MoveRouteTF.parameters.enableTrans = KCDev.MoveRouteTF.parameters.enableTrans === 'true';
+    KCDev.MoveRouteTF.parameters.enableScale = KCDev.MoveRouteTF.parameters.enableScale === 'true';
 
-    $.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
+    KCDev.MoveRouteTF.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
     Sprite_Character.prototype.updateOther = function () {
-        $.Sprite_Character_updateOther.apply(this, arguments);
+        KCDev.MoveRouteTF.Sprite_Character_updateOther.apply(this, arguments);
         const char = this._character;
-        const p = $.parameters;
+        const p = KCDev.MoveRouteTF.parameters;
         if (p.enableScale) {
             this.scale.set(char.scaleX(), char.scaleY());
         }
@@ -187,9 +187,9 @@ KCDev.MoveRouteTF = {};
         }
     };
 
-    $.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
+    KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
     Game_CharacterBase.prototype.initMembers = function () {
-        $.Game_CharacterBase_initMembers.apply(this, arguments);
+        KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
         this._moveRouteTransforms = {
             scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
             scaleY: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
@@ -199,7 +199,7 @@ KCDev.MoveRouteTF = {};
         };
     };
 
-    $.easeFunc = function (transform) {
+    KCDev.MoveRouteTF.easeFunc = function (transform) {
         return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
     }
 
@@ -211,14 +211,14 @@ KCDev.MoveRouteTF = {};
         transforms.forEach(tf => {
             if (needsUpdate(tf)) {
                 tf.time++;
-                tf.current = $.easeFunc(tf);
+                tf.current = KCDev.MoveRouteTF.easeFunc(tf);
             }
         });
     }
 
-    $.Game_CharacterBase_update = Game_CharacterBase.prototype.update;
+    KCDev.MoveRouteTF.Game_CharacterBase_update = Game_CharacterBase.prototype.update;
     Game_CharacterBase.prototype.update = function () {
-        $.Game_CharacterBase_update.apply(this, arguments);
+        KCDev.MoveRouteTF.Game_CharacterBase_update.apply(this, arguments);
         const em = this._moveRouteTransforms;
         updateTransformEx(em.rotation, em.transX, em.transY, em.scaleX, em.scaleY);
     };
