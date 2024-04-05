@@ -193,16 +193,20 @@ Sprite_Character.prototype.updateOther = function () {
     }
 };
 
-KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
-Game_CharacterBase.prototype.initMembers = function () {
-    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
-    this._moveRouteTransforms = {
+KCDev.MoveRouteTF.getNewMoveRouteTransforms = function () {
+    return {
         scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
         scaleY: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
         transX: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
         transY: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
         rotation: { start: 0, current: 0, target: 0, duration: 1, time: 0 }
     };
+};
+
+KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
+Game_CharacterBase.prototype.initMembers = function () {
+    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
+    this._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
 };
 
 KCDev.MoveRouteTF.easeFunc = function (transform) {
