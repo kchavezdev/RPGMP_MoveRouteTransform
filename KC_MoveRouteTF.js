@@ -160,13 +160,19 @@ var KCDev = KCDev || {};
 
 KCDev.MoveRouteTF = {};
 
-(($) => {
+KCDev.MoveRouteTF.parameters = {
+    enableRot: false,
+    enableTrans: false,
+    enableScale: false
+};
 
+(() => {
     const pluginName = document.currentScript.src.split("/").pop().replace(/\.js$/, "");
-    KCDev.MoveRouteTF.parameters = PluginManager.parameters(pluginName);
-    KCDev.MoveRouteTF.parameters.enableRot = KCDev.MoveRouteTF.parameters.enableRot === 'true';
-    KCDev.MoveRouteTF.parameters.enableTrans = KCDev.MoveRouteTF.parameters.enableTrans === 'true';
-    KCDev.MoveRouteTF.parameters.enableScale = KCDev.MoveRouteTF.parameters.enableScale === 'true';
+    const parameters = PluginManager.parameters(pluginName);
+    KCDev.MoveRouteTF.parameters.enableRot = parameters.enableRot === 'true';
+    KCDev.MoveRouteTF.parameters.enableTrans = parameters.enableTrans === 'true';
+    KCDev.MoveRouteTF.parameters.enableScale = parameters.enableScale === 'true';
+})();
 
     KCDev.MoveRouteTF.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
     Sprite_Character.prototype.updateOther = function () {
@@ -469,4 +475,4 @@ KCDev.MoveRouteTF = {};
         }
     }
 
-})(KCDev.MoveRouteTF);
+
