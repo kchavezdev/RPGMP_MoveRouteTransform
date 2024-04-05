@@ -209,24 +209,24 @@ KCDev.MoveRouteTF.easeFunc = function (transform) {
     return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
 }
 
-function needsUpdate(moveInfo) {
+KCDev.MoveRouteTF.needsUpdate = function (moveInfo) {
     return moveInfo.time < moveInfo.duration;
-}
+};
 
-function updateTransformEx(...transforms) {
+KCDev.MoveRouteTF.updateTransformEx = function (...transforms) {
     transforms.forEach(tf => {
-        if (needsUpdate(tf)) {
+        if (KCDev.MoveRouteTF.needsUpdate(tf)) {
             tf.time++;
             tf.current = KCDev.MoveRouteTF.easeFunc(tf);
         }
     });
-}
+};
 
 KCDev.MoveRouteTF.Game_CharacterBase_update = Game_CharacterBase.prototype.update;
 Game_CharacterBase.prototype.update = function () {
     KCDev.MoveRouteTF.Game_CharacterBase_update.apply(this, arguments);
     const em = this._moveRouteTransforms;
-    updateTransformEx(em.rotation, em.transX, em.transY, em.scaleX, em.scaleY);
+    KCDev.MoveRouteTF.updateTransformEx(em.rotation, em.transX, em.transY, em.scaleX, em.scaleY);
 };
 
 /**
@@ -236,12 +236,12 @@ Game_CharacterBase.prototype.update = function () {
  * @param {number} target target value to reach from start
  * @param {number} duration how many frames it should take to reach target from start
  */
-function setTarget(transform, start, target, duration) {
+KCDev.MoveRouteTF.setTarget = function (transform, start, target, duration) {
     transform.target = target;
     transform.duration = duration;
     transform.start = start;
     transform.time = 0;
-}
+};
 
 /**
  * Returns current scale along x axis
@@ -301,7 +301,7 @@ Game_CharacterBase.prototype.rescaleX = function (scale = 0, duration = 1, wait 
  * @param {boolean} wait Wait for this operation to complete before moving to next command?
  */
 Game_CharacterBase.prototype.rescaleXTo = function (scale = 1, duration = 1, wait = false) {
-    setTarget.call(this, this._moveRouteTransforms.scaleX, this.scaleX(), scale, duration);
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.scaleX, this.scaleX(), scale, duration);
     if (wait) {
         this._waitCount = duration;
     }
@@ -324,7 +324,7 @@ Game_CharacterBase.prototype.rescaleY = function (scale = 0, duration = 1, wait 
  * @param {boolean} wait Wait for this operation to complete before moving to next command?
  */
 Game_CharacterBase.prototype.rescaleYTo = function (scale = 1, duration = 1, wait = false) {
-    setTarget.call(this, this._moveRouteTransforms.scaleY, this.scaleY(), scale, duration);
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.scaleY, this.scaleY(), scale, duration);
     if (wait) {
         this._waitCount = duration;
     }
@@ -367,7 +367,7 @@ Game_CharacterBase.prototype.rescaleTo = function (x = 1, y = x, duration = 1, w
  * @param {boolean} wait Wait for this operation to complete before moving to next command?
  */
 Game_CharacterBase.prototype.rotateTo = function (angle = 0, duration = 1, wait = false) {
-    setTarget.call(this, this._moveRouteTransforms.rotation, this.rotation(), angle, duration);
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.rotation, this.rotation(), angle, duration);
     if (wait) {
         this._waitCount = duration;
     }
@@ -400,7 +400,7 @@ Game_CharacterBase.prototype.translateX = function (x = 0, duration = 1, wait = 
  * @param {boolean} wait Wait for this operation to complete before moving to next command?
  */
 Game_CharacterBase.prototype.translateXTo = function (x = 0, duration = 1, wait = false) {
-    setTarget.call(this, this._moveRouteTransforms.transX, this.translationX(), x, duration);
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.transX, this.translationX(), x, duration);
     if (wait) {
         this._waitCount = duration;
     }
@@ -423,7 +423,7 @@ Game_CharacterBase.prototype.translateY = function (y = 0, duration = 1, wait = 
  * @param {boolean} wait Wait for this operation to complete before moving to next command?
  */
 Game_CharacterBase.prototype.translateYTo = function (y = 0, duration = 1, wait = false) {
-    setTarget.call(this, this._moveRouteTransforms.transY, this.translationY(), y, duration);
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.transY, this.translationY(), y, duration);
     if (wait) {
         this._waitCount = duration;
     }
