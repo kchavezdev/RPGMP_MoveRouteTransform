@@ -478,3 +478,19 @@ Game_CharacterBase.prototype.resetTransforms = function (duration = 1, wait = fa
         this._waitCount = duration;
     }
 }
+
+// just in case a save file is loaded that was saved without KC_MoveRouteTF
+KCDev.MoveRouteTF.DataManager_loadGame = DataManager.loadGame;
+DataManager.loadGame = function (saveFileId) {
+    const loadedData = KCDev.MoveRouteTF.DataManager_loadGame.apply(DataManager, arguments);
+    if (loadedData) {
+        if (!$gamePlayer._moveRouteTransforms) {
+            $gamePlayer._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
+            $gamePlayer.followers().forEach(follower => follower._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+            $gameMap.events().forEach(event => event._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+            $gameMap.vehicles().forEach(vehicle => vehicle._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+        }
+    }
+
+    return loadedData;
+};
