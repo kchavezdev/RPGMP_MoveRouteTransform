@@ -28,12 +28,12 @@
  * @target MZ MV
  * @orderBefore KC_Mirrors
  *
- * @plugindesc [v1.0.1]Rotate, translate, and scale characters during move routes.
+ * @plugindesc [v1.0.2]Rotate, translate, and scale characters during move routes.
  *
  * @help 
- * This is a plugin that adds some functions that can be called during move 
- * routes that will rotate, translate, and/or scale the character's sprite 
- * without affecting the 'real' position of the character (i.e. collision and 
+ * This is a plugin that adds some functions that can be called during move
+ * routes that will rotate, translate, and/or scale the character's sprite
+ * without affecting the 'real' position of the character (i.e. collision and
  * activation boxes are not affected).
  * 
  * Known Compatibility issues:
