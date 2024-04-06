@@ -30,7 +30,9 @@
  *
  * @plugindesc [v1.0.2]Rotate, translate, and scale characters during move routes.
  *
- * @help 
+ * @help
+ * KC_MoveRouteTF.js
+ * 
  * This is a plugin that adds some functions that can be called during move
  * routes that will rotate, translate, and/or scale the character's sprite
  * without affecting the 'real' position of the character (i.e. collision and
