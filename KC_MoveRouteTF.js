@@ -193,16 +193,6 @@ Sprite_Character.prototype.updateOther = function () {
     }
 };
 
-// Calling refresh resets the pivot, so let's un-reset it 
-//(fixes animations causing the character sprite to be offset)
-KCDev.MoveRouteTF.Sprite_Character__refresh = Sprite_Character.prototype._refresh;
-Sprite_Character.prototype._refresh = function () {
-    KCDev.MoveRouteTF.Sprite_Character__refresh.apply(this, arguments);
-    if (KCDev.MoveRouteTF.parameters.enableRot) {
-        this.pivot.y = -this.patternHeight() / 2;
-    }
-};
-
 KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
 Game_CharacterBase.prototype.initMembers = function () {
     KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
