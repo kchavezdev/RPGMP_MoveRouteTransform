@@ -183,9 +183,28 @@ Sprite_Character.prototype.updateOther = function () {
         this.scale.set(char.scaleX(), char.scaleY());
     }
     if (p.enableRot) {
-        this.rotation = char.rotation() * Math.PI / 180;
-        this.pivot.y = -this.patternHeight() / 2;
-        this.y += this.pivot.y * this.scale.y;
+
+        // TODO: ADD COMMENTS
+        const rot = char.rotation() * Math.PI / 180;
+        const sinRot = Math.sin(rot);
+        const cosRot = Math.cos(rot);
+        const pw = this.patternWidth();
+        const ph = this.patternHeight();
+        const midX = pw / 2;
+        const midY = ph / 2;
+        const anchorX = this.anchor.x * pw;
+        const anchorY = this.anchor.y * ph;
+
+        const x1 = midX - anchorX;
+        const y1 = midY - anchorY;
+
+        const x2 = x1 * cosRot - y1 * sinRot;
+        const y2 = x1 * sinRot + y1 * cosRot;
+
+        this.x -= x2;
+        this.y -= (y2 + midY);
+
+        this.rotation = rot;
     }
     if (p.enableTrans) {
         this.x += char.translationX();
