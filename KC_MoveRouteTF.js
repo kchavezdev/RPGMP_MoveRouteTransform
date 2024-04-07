@@ -219,12 +219,6 @@ Game_CharacterBase.prototype.initMembers = function () {
     this._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
 };
 
-KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
-Game_CharacterBase.prototype.initMembers = function () {
-    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
-    this._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
-};
-
 KCDev.MoveRouteTF.easeFunc = function (transform) {
     return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
 };
