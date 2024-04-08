@@ -174,6 +174,30 @@ KCDev.MoveRouteTF.parameters = {
     KCDev.MoveRouteTF.parameters.enableScale = parameters.enableScale === 'true';
 })();
 
+/**
+ * Position sprite so that it is rotated around its center without modifying its pivot or anchor
+ * @param {Sprite_Character} sprite 
+ */
+KCDev.MoveRouteTF.correctPositionAfterRotate = function (sprite, rotation) {
+    const sinRot = Math.sin(rotation);
+    const cosRot = Math.cos(rotation);
+    const pw = sprite.patternWidth();
+    const ph = sprite.patternHeight();
+    const midX = pw / 2;
+    const midY = ph / 2;
+    const anchorX = sprite.anchor.x * pw;
+    const anchorY = sprite.anchor.y * ph;
+
+    const x1 = midX - anchorX;
+    const y1 = midY - anchorY;
+
+    const x2 = x1 * cosRot - y1 * sinRot;
+    const y2 = x1 * sinRot + y1 * cosRot;
+
+    sprite.x -= x2;
+    sprite.y -= (y2 + midY);
+};
+
 KCDev.MoveRouteTF.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
 Sprite_Character.prototype.updateOther = function () {
     KCDev.MoveRouteTF.Sprite_Character_updateOther.apply(this, arguments);
@@ -184,25 +208,9 @@ Sprite_Character.prototype.updateOther = function () {
     }
     if (p.enableRot) {
 
-        // TODO: ADD COMMENTS
         const rot = char.rotation() * Math.PI / 180;
-        const sinRot = Math.sin(rot);
-        const cosRot = Math.cos(rot);
-        const pw = this.patternWidth();
-        const ph = this.patternHeight();
-        const midX = pw / 2;
-        const midY = ph / 2;
-        const anchorX = this.anchor.x * pw;
-        const anchorY = this.anchor.y * ph;
 
-        const x1 = midX - anchorX;
-        const y1 = midY - anchorY;
-
-        const x2 = x1 * cosRot - y1 * sinRot;
-        const y2 = x1 * sinRot + y1 * cosRot;
-
-        this.x -= x2;
-        this.y -= (y2 + midY);
+        KCDev.MoveRouteTF.correctPositionAfterRotate(this, rot);
 
         this.rotation = rot;
     }
