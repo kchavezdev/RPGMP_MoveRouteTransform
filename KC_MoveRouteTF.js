@@ -177,6 +177,7 @@ KCDev.MoveRouteTF.parameters = {
 /**
  * Position sprite so that it is rotated around its center without modifying its pivot or anchor
  * @param {Sprite_Character} sprite 
+ * @param {number} rotation Rotation amount in radians
  */
 KCDev.MoveRouteTF.correctPositionAfterRotate = function (sprite, rotation) {
     const sinRot = Math.sin(rotation);
