@@ -210,7 +210,12 @@ Sprite_Character.prototype.updateOther = function () {
 
         const rot = char.rotation() * Math.PI / 180;
 
-        KCDev.MoveRouteTF.correctPositionAfterRotate(this, rot);
+        // if a Sprite_Character has had its anchor modified,
+        // it's probably for a specific reason, so don't attempt
+        // position correction
+        if (this.anchor.x === 0.5 && this.anchor.y === 1) {
+            KCDev.MoveRouteTF.correctPositionAfterRotate(this, rot);
+        }
 
         this.rotation = rot;
     }
