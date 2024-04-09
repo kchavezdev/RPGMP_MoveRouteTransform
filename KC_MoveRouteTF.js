@@ -193,16 +193,6 @@ Sprite_Character.prototype.updateOther = function () {
     }
 };
 
-// Calling refresh resets the pivot, so let's un-reset it 
-//(fixes animations causing the character sprite to be offset)
-KCDev.MoveRouteTF.Sprite_Character__refresh = Sprite_Character.prototype._refresh;
-Sprite_Character.prototype._refresh = function () {
-    KCDev.MoveRouteTF.Sprite_Character__refresh.apply(this, arguments);
-    if (KCDev.MoveRouteTF.parameters.enableRot) {
-        this.pivot.y = -this.patternHeight() / 2;
-    }
-};
-
 KCDev.MoveRouteTF.getNewMoveRouteTransforms = function () {
     return {
         scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
@@ -221,7 +211,7 @@ Game_CharacterBase.prototype.initMembers = function () {
 
 KCDev.MoveRouteTF.easeFunc = function (transform) {
     return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
-};
+}
 
 KCDev.MoveRouteTF.needsUpdate = function (moveInfo) {
     return moveInfo.time < moveInfo.duration;
@@ -487,7 +477,7 @@ Game_CharacterBase.prototype.resetTransforms = function (duration = 1, wait = fa
     if (wait) {
         this._waitCount = duration;
     }
-};
+}
 
 // just in case a save file is loaded that was saved without KC_MoveRouteTF
 KCDev.MoveRouteTF.DataManager_extractSaveContents = DataManager.extractSaveContents;
