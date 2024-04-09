@@ -1,7 +1,7 @@
 /**
  * MIT License
  * 
- * Copyright (c) 2022 K. Chavez <kchavez.dev@gmail.com>
+ * Copyright (c) 2022-2024 K. Chavez <kchavez.dev@gmail.com>
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,18 @@
 
 /*:
  * @author K. Chavez 
- * @url https://github.com/kchavezdev/RMMZ-Plugins
+ * @url https://github.com/kchavezdev/RPGMP_MoveRouteTransform
  * @target MZ MV
  * @orderBefore KC_Mirrors
  *
- * @plugindesc [v1.0.1]Rotate, translate, and scale characters during move routes.
+ * @plugindesc [v1.0.2]Rotate, translate, and scale characters during move routes.
  *
- * @help 
- * This is a plugin that adds some functions that can be called during move 
- * routes that will rotate, translate, and/or scale the character's sprite 
- * without affecting the 'real' position of the character (i.e. collision and 
+ * @help
+ * KC_MoveRouteTF.js
+ * 
+ * This is a plugin that adds some functions that can be called during move
+ * routes that will rotate, translate, and/or scale the character's sprite
+ * without affecting the 'real' position of the character (i.e. collision and
  * activation boxes are not affected).
  * 
  * Known Compatibility issues:
