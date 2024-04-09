@@ -195,16 +195,20 @@ Sprite_Character.prototype.updateOther = function () {
     }
 };
 
-KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
-Game_CharacterBase.prototype.initMembers = function () {
-    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
-    this._moveRouteTransforms = {
+KCDev.MoveRouteTF.getNewMoveRouteTransforms = function () {
+    return {
         scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
         scaleY: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
         transX: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
         transY: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
         rotation: { start: 0, current: 0, target: 0, duration: 1, time: 0 }
     };
+};
+
+KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
+Game_CharacterBase.prototype.initMembers = function () {
+    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
+    this._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
 };
 
 KCDev.MoveRouteTF.easeFunc = function (transform) {
@@ -476,3 +480,16 @@ Game_CharacterBase.prototype.resetTransforms = function (duration = 1, wait = fa
         this._waitCount = duration;
     }
 }
+
+// just in case a save file is loaded that was saved without KC_MoveRouteTF
+KCDev.MoveRouteTF.DataManager_extractSaveContents = DataManager.extractSaveContents;
+DataManager.extractSaveContents = function (saveFileId) {
+    KCDev.MoveRouteTF.DataManager_extractSaveContents.apply(DataManager, arguments);
+
+    if (!$gamePlayer._moveRouteTransforms) {
+        $gamePlayer._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
+        $gamePlayer.followers()._data.forEach(follower => follower._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+        $gameMap.events().forEach(event => event._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+        $gameMap.vehicles().forEach(vehicle => vehicle._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+    }
+};
