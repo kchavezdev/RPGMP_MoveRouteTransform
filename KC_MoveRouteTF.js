@@ -1,7 +1,7 @@
 /**
  * MIT License
  * 
- * Copyright (c) 2022 K. Chavez <kchavez.dev@gmail.com>
+ * Copyright (c) 2022-2024 K. Chavez <kchavez.dev@gmail.com>
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,18 @@
 
 /*:
  * @author K. Chavez 
- * @url https://github.com/kchavezdev/RMMZ-Plugins
+ * @url https://github.com/kchavezdev/RPGMP_MoveRouteTransform
  * @target MZ MV
  * @orderBefore KC_Mirrors
  *
- * @plugindesc [v1.0.1]Rotate, translate, and scale characters during move routes.
+ * @plugindesc [v1.0.2]Rotate, translate, and scale characters during move routes.
  *
- * @help 
- * This is a plugin that adds some functions that can be called during move 
- * routes that will rotate, translate, and/or scale the character's sprite 
- * without affecting the 'real' position of the character (i.e. collision and 
+ * @help
+ * KC_MoveRouteTF.js
+ * 
+ * This is a plugin that adds some functions that can be called during move
+ * routes that will rotate, translate, and/or scale the character's sprite
+ * without affecting the 'real' position of the character (i.e. collision and
  * activation boxes are not affected).
  * 
  * Known Compatibility issues:
@@ -156,317 +158,375 @@
  *                                                              
  */
 
+
+var Imported = Imported || {};
+Imported.KC_MoveRouteTF = true;
+
 var KCDev = KCDev || {};
 
 KCDev.MoveRouteTF = {};
 
-(($) => {
+KCDev.MoveRouteTF.parameters = {
+    enableRot: false,
+    enableTrans: false,
+    enableScale: false
+};
 
+(() => {
     const pluginName = document.currentScript.src.split("/").pop().replace(/\.js$/, "");
-    $.parameters = PluginManager.parameters(pluginName);
-    $.parameters.enableRot = $.parameters.enableRot === 'true';
-    $.parameters.enableTrans = $.parameters.enableTrans === 'true';
-    $.parameters.enableScale = $.parameters.enableScale === 'true';
+    const parameters = PluginManager.parameters(pluginName);
+    KCDev.MoveRouteTF.parameters.enableRot = parameters.enableRot === 'true';
+    KCDev.MoveRouteTF.parameters.enableTrans = parameters.enableTrans === 'true';
+    KCDev.MoveRouteTF.parameters.enableScale = parameters.enableScale === 'true';
+})();
 
-    $.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
-    Sprite_Character.prototype.updateOther = function () {
-        $.Sprite_Character_updateOther.apply(this, arguments);
-        const char = this._character;
-        const p = $.parameters;
-        if (p.enableScale) {
-            this.scale.set(char.scaleX(), char.scaleY());
-        }
-        if (p.enableRot) {
-            this.rotation = char.rotation() * Math.PI / 180;
-            this.pivot.y = -this.patternHeight() / 2;
-            this.y += this.pivot.y * this.scale.y;
-        }
-        if (p.enableTrans) {
-            this.x += char.translationX();
-            this.y += char.translationY();
-        }
-    };
+/**
+ * Position sprite so that it is rotated around its center without modifying its pivot or anchor
+ * @param {Sprite_Character} sprite 
+ * @param {number} rotation Rotation amount in radians
+ */
+KCDev.MoveRouteTF.correctPositionAfterRotate = function (sprite, rotation) {
+    const sinRot = Math.sin(rotation);
+    const cosRot = Math.cos(rotation);
+    const pw = sprite.patternWidth();
+    const ph = sprite.patternHeight();
+    const midX = pw / 2;
+    const midY = ph / 2;
+    const anchorX = sprite.anchor.x * pw;
+    const anchorY = sprite.anchor.y * ph;
 
-    $.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
-    Game_CharacterBase.prototype.initMembers = function () {
-        $.Game_CharacterBase_initMembers.apply(this, arguments);
-        this._moveRouteTransforms = {
-            scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
-            scaleY: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
-            transX: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
-            transY: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
-            rotation: { start: 0, current: 0, target: 0, duration: 1, time: 0 }
-        };
-    };
+    const x1 = midX - anchorX;
+    const y1 = midY - anchorY;
 
-    $.easeFunc = function (transform) {
-        return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
+    const x2 = x1 * cosRot - y1 * sinRot;
+    const y2 = x1 * sinRot + y1 * cosRot;
+
+    sprite.x -= x2;
+    sprite.y -= (y2 + midY);
+};
+
+KCDev.MoveRouteTF.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
+Sprite_Character.prototype.updateOther = function () {
+    KCDev.MoveRouteTF.Sprite_Character_updateOther.apply(this, arguments);
+    const char = this._character;
+    const p = KCDev.MoveRouteTF.parameters;
+    if (p.enableScale) {
+        this.scale.set(char.scaleX(), char.scaleY());
     }
+    if (p.enableRot) {
 
-    function needsUpdate(moveInfo) {
-        return moveInfo.time < moveInfo.duration;
+        const rot = char.rotation() * Math.PI / 180;
+
+        // if a Sprite_Character has had its anchor modified,
+        // it's probably for a specific reason, so don't attempt
+        // position correction
+        if (this.anchor.x === 0.5 && this.anchor.y === 1) {
+            KCDev.MoveRouteTF.correctPositionAfterRotate(this, rot);
+        }
+
+        this.rotation = rot;
     }
-
-    function updateTransformEx(...transforms) {
-        transforms.forEach(tf => {
-            if (needsUpdate(tf)) {
-                tf.time++;
-                tf.current = $.easeFunc(tf);
-            }
-        });
+    if (p.enableTrans) {
+        this.x += char.translationX();
+        this.y += char.translationY();
     }
+};
 
-    $.Game_CharacterBase_update = Game_CharacterBase.prototype.update;
-    Game_CharacterBase.prototype.update = function () {
-        $.Game_CharacterBase_update.apply(this, arguments);
-        const em = this._moveRouteTransforms;
-        updateTransformEx(em.rotation, em.transX, em.transY, em.scaleX, em.scaleY);
+KCDev.MoveRouteTF.getNewMoveRouteTransforms = function () {
+    return {
+        scaleX: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
+        scaleY: { start: 1, current: 1, target: 1, duration: 1, time: 0 },
+        transX: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
+        transY: { start: 0, current: 0, target: 0, duration: 1, time: 0 },
+        rotation: { start: 0, current: 0, target: 0, duration: 1, time: 0 }
     };
+};
 
-    /**
-     * Updates an extendedMove property to start an object's transformation
-     * @param {number} transform extendedMove object
-     * @param {number} start starting value
-     * @param {number} target target value to reach from start
-     * @param {number} duration how many frames it should take to reach target from start
-     */
-    function setTarget(transform, start, target, duration) {
-        transform.target = target;
-        transform.duration = duration;
-        transform.start = start;
-        transform.time = 0;
+KCDev.MoveRouteTF.Game_CharacterBase_initMembers = Game_CharacterBase.prototype.initMembers;
+Game_CharacterBase.prototype.initMembers = function () {
+    KCDev.MoveRouteTF.Game_CharacterBase_initMembers.apply(this, arguments);
+    this._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
+};
+
+KCDev.MoveRouteTF.easeFunc = function (transform) {
+    return transform.start + (transform.target - transform.start) * (transform.time / transform.duration);
+}
+
+KCDev.MoveRouteTF.needsUpdate = function (moveInfo) {
+    return moveInfo.time < moveInfo.duration;
+};
+
+KCDev.MoveRouteTF.updateTransformEx = function (...transforms) {
+    transforms.forEach(tf => {
+        if (KCDev.MoveRouteTF.needsUpdate(tf)) {
+            tf.time++;
+            tf.current = KCDev.MoveRouteTF.easeFunc(tf);
+        }
+    });
+};
+
+KCDev.MoveRouteTF.Game_CharacterBase_update = Game_CharacterBase.prototype.update;
+Game_CharacterBase.prototype.update = function () {
+    KCDev.MoveRouteTF.Game_CharacterBase_update.apply(this, arguments);
+    const em = this._moveRouteTransforms;
+    KCDev.MoveRouteTF.updateTransformEx(em.rotation, em.transX, em.transY, em.scaleX, em.scaleY);
+};
+
+/**
+ * Updates an extendedMove property to start an object's transformation
+ * @param {number} transform extendedMove object
+ * @param {number} start starting value
+ * @param {number} target target value to reach from start
+ * @param {number} duration how many frames it should take to reach target from start
+ */
+KCDev.MoveRouteTF.setTarget = function (transform, start, target, duration) {
+    transform.target = target;
+    transform.duration = duration;
+    transform.start = start;
+    transform.time = 0;
+};
+
+/**
+ * Returns current scale along x axis
+ * @returns {number}
+ */
+Game_CharacterBase.prototype.scaleX = function () {
+    return this._moveRouteTransforms.scaleX.current;
+};
+
+/**
+ * Returns current scale along y axis
+ * @returns {number}
+ */
+Game_CharacterBase.prototype.scaleY = function () {
+    return this._moveRouteTransforms.scaleY.current;
+};
+
+/**
+ * Returns current x offset from character's 'real' position
+ * @returns {number}
+ */
+Game_CharacterBase.prototype.translationX = function () {
+    return this._moveRouteTransforms.transX.current;
+};
+
+/**
+ * Returns current y offset from character's 'real' position
+ * @returns {number}
+ */
+Game_CharacterBase.prototype.translationY = function () {
+    return this._moveRouteTransforms.transY.current;
+};
+
+
+/**
+ * Returns current rotation angle in degrees
+ * @returns {number}
+ */
+Game_CharacterBase.prototype.rotation = function () {
+    return this._moveRouteTransforms.rotation.current;
+};
+
+/**
+ * Rescale on x axis from current x scale to x + an offset
+ * @param {number} scale Amount to offset the current scale by.
+ * @param {number} duration How many frames it should take to reach target scale
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescaleX = function (scale = 0, duration = 1, wait = false) {
+    this.rescaleXTo(this.scaleX() + scale, duration, wait);
+}
+
+/**
+ * Rescale on x axis from current x scale to a target x scale
+ * @param {number} scale Target scale to finish at
+ * @param {number} duration How many frames it should take to reach target scale
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescaleXTo = function (scale = 1, duration = 1, wait = false) {
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.scaleX, this.scaleX(), scale, duration);
+    if (wait) {
+        this._waitCount = duration;
     }
+};
 
-    /**
-     * Returns current scale along x axis
-     * @returns {number}
-     */
-    Game_CharacterBase.prototype.scaleX = function () {
-        return this._moveRouteTransforms.scaleX.current;
-    };
+/**
+ * Rescale on y axis from current y scale to y + an offset
+ * @param {number} scale Amount to offset the current scale by.
+ * @param {number} duration How many frames it should take to reach target scale
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescaleY = function (scale = 0, duration = 1, wait = false) {
+    this.rescaleYTo(this.scaleY() + scale, duration, wait);
+};
 
-    /**
-     * Returns current scale along y axis
-     * @returns {number}
-     */
-    Game_CharacterBase.prototype.scaleY = function () {
-        return this._moveRouteTransforms.scaleY.current;
-    };
-
-    /**
-     * Returns current x offset from character's 'real' position
-     * @returns {number}
-     */
-    Game_CharacterBase.prototype.translationX = function () {
-        return this._moveRouteTransforms.transX.current;
-    };
-
-    /**
-     * Returns current y offset from character's 'real' position
-     * @returns {number}
-     */
-    Game_CharacterBase.prototype.translationY = function () {
-        return this._moveRouteTransforms.transY.current;
-    };
-
-
-    /**
-     * Returns current rotation angle in degrees
-     * @returns {number}
-     */
-    Game_CharacterBase.prototype.rotation = function () {
-        return this._moveRouteTransforms.rotation.current;
-    };
-
-    /**
-     * Rescale on x axis from current x scale to x + an offset
-     * @param {number} scale Amount to offset the current scale by.
-     * @param {number} duration How many frames it should take to reach target scale
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rescaleX = function (scale = 0, duration = 1, wait = false) {
-        this.rescaleXTo(this.scaleX() + scale, duration, wait);
+/**
+ * Rescale on y axis from current y scale to a target y scale
+ * @param {number} scale Target scale to finish at
+ * @param {number} duration How many frames it should take to reach target scale
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescaleYTo = function (scale = 1, duration = 1, wait = false) {
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.scaleY, this.scaleY(), scale, duration);
+    if (wait) {
+        this._waitCount = duration;
     }
+};
 
-    /**
-     * Rescale on x axis from current x scale to a target x scale
-     * @param {number} scale Target scale to finish at
-     * @param {number} duration How many frames it should take to reach target scale
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rescaleXTo = function (scale = 1, duration = 1, wait = false) {
-        setTarget.call(this, this._moveRouteTransforms.scaleX, this.scaleX(), scale, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Rescale on y axis from current y scale to y + an offset
-     * @param {number} scale Amount to offset the current scale by.
-     * @param {number} duration How many frames it should take to reach target scale
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rescaleY = function (scale = 0, duration = 1, wait = false) {
-        this.rescaleYTo(this.scaleY() + scale, duration, wait);
-    };
-
-    /**
-     * Rescale on y axis from current y scale to a target y scale
-     * @param {number} scale Target scale to finish at
-     * @param {number} duration How many frames it should take to reach target scale
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rescaleYTo = function (scale = 1, duration = 1, wait = false) {
-        setTarget.call(this, this._moveRouteTransforms.scaleY, this.scaleY(), scale, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Add a value to x and y scales
-     * @param {number} x Target x scale
-     * @param {number} y target y scale
-     * @param {number} duration How many frames it should take to reach these targets
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-     Game_CharacterBase.prototype.rescale = function (x = 0, y = x, duration = 1, wait = false) {
-        this.rescaleX(x, duration);
-        this.rescaleY(y, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Rescale on x and y axes to a target scale
-     * @param {number} x Target x scale
-     * @param {number} y target y scale
-     * @param {number} duration How many frames it should take to reach these targets
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rescaleTo = function (x = 1, y = x, duration = 1, wait = false) {
-        this.rescaleXTo(x, duration);
-        this.rescaleYTo(y, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Rotate from the character's current angle to a target angle
-     * @param {number} angle Target angle to rotate to in degrees
-     * @param {number} duration How many frames the rotation lasts
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rotateTo = function (angle = 0, duration = 1, wait = false) {
-        setTarget.call(this, this._moveRouteTransforms.rotation, this.rotation(), angle, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Offset the current rotation by the specified angle
-     * @param {number} angle Target angle to offset current rotation in degrees
-     * @param {number} duration How many frames the rotation lasts
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.rotate = function (angle = 0, duration = 1, wait = false) {
-        this.rotateTo(this.rotation() + angle, duration, wait);
-    };
-
-    /**
-     * Translate x pixels away from the current y translation
-     * @param {number} x Number of pixels in the x direction to translate by
-     * @param {number} duration How long it should take for the character to move x pixels
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-     Game_CharacterBase.prototype.translateX = function (x = 0, duration = 1, wait = false) {
-        this.translateXTo(this.translationX() + x, duration, wait);
-    };
-
-    /**
-     * Translate from current x offset to a target value relative to character's 'main' collision
-     * @param {number} x Number of pixels in the x direction to translate by
-     * @param {number} duration How long it should take for the character to move x pixels
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.translateXTo = function (x = 0, duration = 1, wait = false) {
-        setTarget.call(this, this._moveRouteTransforms.transX, this.translationX(), x, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Translate y pixels away from the current y translation
-     * @param {number} y Number of pixels in the y direction to translate by
-     * @param {number} duration How long it should take for the character to move y pixels
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-     Game_CharacterBase.prototype.translateY = function (y = 0, duration = 1, wait = false) {
-        this.translateYTo(this.translationY() + y, duration, wait);
-    };
-
-    /**
-     * Translate from current y offset to a target value relative to character's 'main' collision
-     * @param {number} y Number of pixels in the y direction to translate by
-     * @param {number} duration How long it should take for the character to move x pixels
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.translateYTo = function (y = 0, duration = 1, wait = false) {
-        setTarget.call(this, this._moveRouteTransforms.transY, this.translationY(), y, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * A combined call for translateX and translateY
-     * @param {number} x x offset from current translation
-     * @param {number} y y offset from current translation
-     * @param {number} duration How many frames this should last
-     * @param {boolean} wait Wait for this operation to complete before moving to the next command?
-     */
-
-    Game_CharacterBase.prototype.translate = function (x = 0, y = x, duration = 1, wait = false) {
-        this.translateX(x, duration);
-        this.translateY(y, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * A combined call for translateXTo and translateYTo
-     * @param {number} x Target x translation
-     * @param {number} y Target y translation
-     * @param {number} duration How many frames this should last
-     * @param {boolean} wait Wait for this operation to complete before moving to the next command?
-     */
-    Game_CharacterBase.prototype.translateTo = function (x = 0, y = x, duration = 1, wait = false) {
-        this.translateXTo(x, duration, wait);
-        this.translateYTo(y, duration, wait);
-        if (wait) {
-            this._waitCount = duration;
-        }
-    };
-
-    /**
-     * Reset all transform values to defaults
-     * @param {number} duration Number of frames that it takes to reset
-     * @param {boolean} wait Wait for this operation to complete before moving to next command?
-     */
-    Game_CharacterBase.prototype.resetTransforms = function (duration = 1, wait = false) {
-        this.rotateTo(0, duration);
-        this.translateXTo(0, duration);
-        this.translateYTo(0, duration);
-        this.rescaleTo(1, 1, duration);
-        if (wait) {
-            this._waitCount = duration;
-        }
+/**
+ * Add a value to x and y scales
+ * @param {number} x Target x scale
+ * @param {number} y target y scale
+ * @param {number} duration How many frames it should take to reach these targets
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescale = function (x = 0, y = x, duration = 1, wait = false) {
+    this.rescaleX(x, duration);
+    this.rescaleY(y, duration);
+    if (wait) {
+        this._waitCount = duration;
     }
+};
 
-})(KCDev.MoveRouteTF);
+/**
+ * Rescale on x and y axes to a target scale
+ * @param {number} x Target x scale
+ * @param {number} y target y scale
+ * @param {number} duration How many frames it should take to reach these targets
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rescaleTo = function (x = 1, y = x, duration = 1, wait = false) {
+    this.rescaleXTo(x, duration);
+    this.rescaleYTo(y, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * Rotate from the character's current angle to a target angle
+ * @param {number} angle Target angle to rotate to in degrees
+ * @param {number} duration How many frames the rotation lasts
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rotateTo = function (angle = 0, duration = 1, wait = false) {
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.rotation, this.rotation(), angle, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * Offset the current rotation by the specified angle
+ * @param {number} angle Target angle to offset current rotation in degrees
+ * @param {number} duration How many frames the rotation lasts
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.rotate = function (angle = 0, duration = 1, wait = false) {
+    this.rotateTo(this.rotation() + angle, duration, wait);
+};
+
+/**
+ * Translate x pixels away from the current y translation
+ * @param {number} x Number of pixels in the x direction to translate by
+ * @param {number} duration How long it should take for the character to move x pixels
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.translateX = function (x = 0, duration = 1, wait = false) {
+    this.translateXTo(this.translationX() + x, duration, wait);
+};
+
+/**
+ * Translate from current x offset to a target value relative to character's 'main' collision
+ * @param {number} x Number of pixels in the x direction to translate by
+ * @param {number} duration How long it should take for the character to move x pixels
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.translateXTo = function (x = 0, duration = 1, wait = false) {
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.transX, this.translationX(), x, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * Translate y pixels away from the current y translation
+ * @param {number} y Number of pixels in the y direction to translate by
+ * @param {number} duration How long it should take for the character to move y pixels
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.translateY = function (y = 0, duration = 1, wait = false) {
+    this.translateYTo(this.translationY() + y, duration, wait);
+};
+
+/**
+ * Translate from current y offset to a target value relative to character's 'main' collision
+ * @param {number} y Number of pixels in the y direction to translate by
+ * @param {number} duration How long it should take for the character to move x pixels
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.translateYTo = function (y = 0, duration = 1, wait = false) {
+    KCDev.MoveRouteTF.setTarget.call(this, this._moveRouteTransforms.transY, this.translationY(), y, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * A combined call for translateX and translateY
+ * @param {number} x x offset from current translation
+ * @param {number} y y offset from current translation
+ * @param {number} duration How many frames this should last
+ * @param {boolean} wait Wait for this operation to complete before moving to the next command?
+ */
+
+Game_CharacterBase.prototype.translate = function (x = 0, y = x, duration = 1, wait = false) {
+    this.translateX(x, duration);
+    this.translateY(y, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * A combined call for translateXTo and translateYTo
+ * @param {number} x Target x translation
+ * @param {number} y Target y translation
+ * @param {number} duration How many frames this should last
+ * @param {boolean} wait Wait for this operation to complete before moving to the next command?
+ */
+Game_CharacterBase.prototype.translateTo = function (x = 0, y = x, duration = 1, wait = false) {
+    this.translateXTo(x, duration, wait);
+    this.translateYTo(y, duration, wait);
+    if (wait) {
+        this._waitCount = duration;
+    }
+};
+
+/**
+ * Reset all transform values to defaults
+ * @param {number} duration Number of frames that it takes to reset
+ * @param {boolean} wait Wait for this operation to complete before moving to next command?
+ */
+Game_CharacterBase.prototype.resetTransforms = function (duration = 1, wait = false) {
+    this.rotateTo(0, duration);
+    this.translateXTo(0, duration);
+    this.translateYTo(0, duration);
+    this.rescaleTo(1, 1, duration);
+    if (wait) {
+        this._waitCount = duration;
+    }
+}
+
+// just in case a save file is loaded that was saved without KC_MoveRouteTF
+KCDev.MoveRouteTF.DataManager_extractSaveContents = DataManager.extractSaveContents;
+DataManager.extractSaveContents = function (saveFileId) {
+    KCDev.MoveRouteTF.DataManager_extractSaveContents.apply(DataManager, arguments);
+
+    if (!$gamePlayer._moveRouteTransforms) {
+        $gamePlayer._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms();
+        $gamePlayer.followers()._data.forEach(follower => follower._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+        $gameMap.events().forEach(event => event._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+        $gameMap.vehicles().forEach(vehicle => vehicle._moveRouteTransforms = KCDev.MoveRouteTF.getNewMoveRouteTransforms());
+    }
+};
