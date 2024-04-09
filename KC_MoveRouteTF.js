@@ -176,6 +176,31 @@ KCDev.MoveRouteTF.parameters = {
     KCDev.MoveRouteTF.parameters.enableScale = parameters.enableScale === 'true';
 })();
 
+/**
+ * Position sprite so that it is rotated around its center without modifying its pivot or anchor
+ * @param {Sprite_Character} sprite 
+ * @param {number} rotation Rotation amount in radians
+ */
+KCDev.MoveRouteTF.correctPositionAfterRotate = function (sprite, rotation) {
+    const sinRot = Math.sin(rotation);
+    const cosRot = Math.cos(rotation);
+    const pw = sprite.patternWidth();
+    const ph = sprite.patternHeight();
+    const midX = pw / 2;
+    const midY = ph / 2;
+    const anchorX = sprite.anchor.x * pw;
+    const anchorY = sprite.anchor.y * ph;
+
+    const x1 = midX - anchorX;
+    const y1 = midY - anchorY;
+
+    const x2 = x1 * cosRot - y1 * sinRot;
+    const y2 = x1 * sinRot + y1 * cosRot;
+
+    sprite.x -= x2;
+    sprite.y -= (y2 + midY);
+};
+
 KCDev.MoveRouteTF.Sprite_Character_updateOther = Sprite_Character.prototype.updateOther;
 Sprite_Character.prototype.updateOther = function () {
     KCDev.MoveRouteTF.Sprite_Character_updateOther.apply(this, arguments);
@@ -185,9 +210,17 @@ Sprite_Character.prototype.updateOther = function () {
         this.scale.set(char.scaleX(), char.scaleY());
     }
     if (p.enableRot) {
-        this.rotation = char.rotation() * Math.PI / 180;
-        this.pivot.y = -this.patternHeight() / 2;
-        this.y += this.pivot.y * this.scale.y;
+
+        const rot = char.rotation() * Math.PI / 180;
+
+        // if a Sprite_Character has had its anchor modified,
+        // it's probably for a specific reason, so don't attempt
+        // position correction
+        if (this.anchor.x === 0.5 && this.anchor.y === 1) {
+            KCDev.MoveRouteTF.correctPositionAfterRotate(this, rot);
+        }
+
+        this.rotation = rot;
     }
     if (p.enableTrans) {
         this.x += char.translationX();
