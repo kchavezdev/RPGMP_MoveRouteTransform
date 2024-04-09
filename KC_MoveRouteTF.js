@@ -158,6 +158,10 @@
  *                                                              
  */
 
+
+var Imported = Imported || {};
+Imported.KC_MoveRouteTF = true;
+
 var KCDev = KCDev || {};
 
 KCDev.MoveRouteTF = {};
